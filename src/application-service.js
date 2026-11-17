@@ -1,4 +1,4 @@
-import { AppError, missing, forbidden, invalidState } from './errors.js';
+import { AppError, missing, forbidden, invalidState,duplicate } from './errors.js';
 
 // TODO-01~04: 업무 규칙과 트랜잭션을 직접 구현합니다. docs/API.md를 먼저 읽으세요.
 // actor는 검증된 로그인 사용자입니다. repo의 저장 함수는 권한을 검사하지 않습니다.
@@ -7,13 +7,13 @@ import { AppError, missing, forbidden, invalidState } from './errors.js';
 
 // 트랜젝션 구현
 function transaction(repo, work) {
-  db.exec('BEGIN');
+  repo.db.exec('BEGIN IMMEDIATE');
   try {
     const result = work();
-    db.exec('COMMIT');
+    repo.db.exec('COMMIT');
     return result;
   } catch (e) {
-    db.exec('ROLLBACK');
+    repo.db.exec('ROLLBACK');
     throw e;
   }
 }
@@ -21,8 +21,6 @@ function transaction(repo, work) {
 export function createApplicationService(repo) {
   return {
     apply(actor,eventId) {
-      // TODO-01: 행사·학생 역할·중복 검사 → PENDING 저장 + APPLY 이력.
-      // 취소·승인 취소 기록도 중복입니다. 반환: 신청 객체.
       return transaction(repo, () => {
         // 행사 존재 확인 (error.js의 missing('행사')를 throw)
         const e = repo.event(eventId); 
