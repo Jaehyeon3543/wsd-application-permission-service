@@ -35,6 +35,21 @@ export function createApplicationService(repo) {
         const existing = repo.existing(eventId, actor.id);
         if (existing) throw duplicate();
 
+        // PENDING 저장
+        const application = repo.insert(eventId, actor.id);
+
+        // APPLY 이력 저장
+        repo.addHistory({
+          applicationId: application.id,
+          actorId: actor.id,
+          action: 'APPLY',
+          fromStatus: null,
+          toStatus: 'PENDING',
+          reason: null,
+          causeHistoryId: null
+        });
+
+        return application;
       });
     },
     cancel(actor,applicationId) {
