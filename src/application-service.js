@@ -52,18 +52,32 @@ export function createApplicationService(repo) {
     },
 
     cancel(actor,applicationId) {
-      // TODO-02: 본인의 PENDING만 CANCELLED로 변경 + CANCEL 이력.
-      // 학생의 대기 취소는 승인 자리를 비우지 않으므로 자동 승급하지 않습니다.
       return transaction(repo, () => {
         // 신청 존재 확인 (error.js의 missing('신청')를 throw)
         const application = repo.application(applicationId);
         if(!application) throw missing('신청');
 
         // 본인 확인 (error.js의 forbidden()를 throw)
-        if(application.studentId !== actor.id) throw forbidden();
+        if(application.userId !== actor.id) throw forbidden();
 
         // 신청 상태 확인 (error.js의 invalidState()를 throw)
         if(application.status !== 'PENDING') throw invalidState();
+
+        // CANCELLED로 상태 변경
+        const updated = repo.setStatus(applicationId, 'CANCELLED');
+
+        // CANCEL 이력 저장
+        repo.addHistory({
+          applicationId: applicationId,
+          actorId: actor.id,
+          action: 'CANCEL',
+          fromStatus: 'PENDING',
+          toStatus: 'CANCELLED',
+          reason: null,
+          causeHistoryId: null
+        });
+
+        return updated;
       });
     },
     approve(actor,applicationId) {
