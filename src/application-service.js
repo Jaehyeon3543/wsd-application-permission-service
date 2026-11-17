@@ -4,12 +4,38 @@ import { AppError, missing, forbidden, invalidState } from './errors.js';
 // actor는 검증된 로그인 사용자입니다. repo의 저장 함수는 권한을 검사하지 않습니다.
 // 상태 변경과 이력 저장은 함께 성공하거나 함께 실패해야 합니다.
 // 승인 취소와 자동 승급은 신청 2건 + 이력 2건을 한 트랜잭션으로 처리합니다.
+
+// 트랜젝션 구현
+function transaction(repo, work) {
+  db.exec('BEGIN');
+  try {
+    const result = work();
+    db.exec('COMMIT');
+    return result;
+  } catch (e) {
+    db.exec('ROLLBACK');
+    throw e;
+  }
+}
+
 export function createApplicationService(repo) {
   return {
     apply(actor,eventId) {
       // TODO-01: 행사·학생 역할·중복 검사 → PENDING 저장 + APPLY 이력.
       // 취소·승인 취소 기록도 중복입니다. 반환: 신청 객체.
-      throw new AppError(501,'NOT_IMPLEMENTED','TODO-01 신청과 이력 저장을 구현하세요.');
+      return transaction(repo, () => {
+        // 행사 존재 확인 (error.js의 missing('행사')를 throw)
+        const e = repo.event(eventId); 
+        if (!e) throw missing('행사');
+
+        // 학생 역할 확인 (error.js의 forbidden()를 throw)
+        if (actor.role !== 'STUDENT') throw forbidden();
+
+        // 중복 신청 확인 (error.js의 duplicate()를 throw)
+        const existing = repo.existing(eventId, actor.id);
+        if (existing) throw duplicate();
+
+      });
     },
     cancel(actor,applicationId) {
       // TODO-02: 본인의 PENDING만 CANCELLED로 변경 + CANCEL 이력.
