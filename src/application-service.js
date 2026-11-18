@@ -81,10 +81,39 @@ export function createApplicationService(repo) {
       });
     },
     approve(actor,applicationId) {
-      // TODO-03: 담당자·PENDING·정원 검사 → APPROVED + APPROVE 이력.
-      // 직접 승인은 운영자가 선택합니다. FIFO는 승인 취소 때의 자동 승급에 적용합니다.
-      throw new AppError(501,'NOT_IMPLEMENTED','TODO-03 승인과 이력을 구현하세요.');
-    },
+      return transaction(repo, () => {
+        // 신청 존재 확인
+        const application = repo.application(applicationId);
+        if(!application) throw missing('신청');
+
+        // 담당 운영자 확인
+        const event = repo.event(application.eventId);
+        if(actor.role !== 'MANAGER' || event.managerId !== actor.id) throw forbidden();
+
+        // 대기 상태 확인
+        if(application.status !== "PENDING") throw invalidState();
+
+        // 정원 상태 확인
+        if(repo.approvedCount(event.id) >= event.capacity){
+          throw new AppError(409,"CAPACITY_FULL",'정원이 다 찼습니다.')
+        }
+
+        const updated = repo.setStatus(application.id, 'APPROVED')
+
+        // approve 이력 저장
+        repo.addHistory({
+          applicationId: applicationId,
+          actorId: actor.id,
+          action: 'APPROVE',
+          fromStatus: 'PENDING',
+          toStatus: 'APPROVED',
+          reason: null,
+          causeHistoryId: null
+        });
+
+        return updated;
+        });
+      },
     revoke(actor,applicationId,reason) {
       // TODO-04: 담당자·APPROVED 검사 → REVOKED + REVOKE 이력.
       // 같은 행사 PENDING 중 created_at ASC, id ASC 첫 1건을 자동 승인합니다.
