@@ -133,19 +133,20 @@ export function createApplicationService(repo) {
         // 승인 상태 확인
         if(application.status !== "APPROVED") throw invalidState();
 
-        // 기존 승인  거부
-        const updated = repo.setStatus(application.id, 'CANCLED')
+        // 기존 승인 거부
+        const revoked = repo.setStatus(application.id, 'REVOKED')
 
-        repo.addHistory({
+        const revokeHistoryId = repo.addHistory({
           applicationId: applicationId,
           actorId: actor.id,
-          action: 'CANCEL',
+          action: 'REVOKE',
           fromStatus: 'PENDING',
-          toStatus: 'CANCELLED',
-          reason: null,
+          toStatus: 'REVOKED',
+          reason: reason,
           causeHistoryId: null
         });
-      })
+
+      });
     }
   };
 }
