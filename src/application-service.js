@@ -120,7 +120,32 @@ export function createApplicationService(repo) {
       // AUTO_APPROVE 이력의 causeHistoryId는 이 요청의 REVOKE 이력 ID입니다.
       // 상태와 이력의 부분 저장을 막고, 거부·오류 시 전체를 되돌리세요.
       // 반환: {revoked: 신청 객체, promoted: 신청 객체 또는 null}.
-      throw new AppError(501,'NOT_IMPLEMENTED','TODO-04 승인 취소·자동 승급·이력을 구현하세요.');
+      // 실제로 존재하는 application을 "reject" 하고 pending 중 첫 1건을 자동 승인해야함.
+      return transaction(repo, () =>{
+        // 신청 확인
+        const application = repo.application(applicationId);
+        if(!application) throw missing('신청');
+
+        // 담당자 확인.
+        const event = repo.event(application.eventId);
+        if(actor.role !== 'MANAGER' || event.managerId !== actor.id) throw forbidden();
+
+        // 승인 상태 확인
+        if(application.status !== "APPROVED") throw invalidState();
+
+        // 기존 승인  거부
+        const updated = repo.setStatus(application.id, 'CANCLED')
+
+        repo.addHistory({
+          applicationId: applicationId,
+          actorId: actor.id,
+          action: 'CANCEL',
+          fromStatus: 'PENDING',
+          toStatus: 'CANCELLED',
+          reason: null,
+          causeHistoryId: null
+        });
+      })
     }
   };
 }
