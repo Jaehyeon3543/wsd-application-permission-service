@@ -27,7 +27,7 @@ export function createRepository(db) {
     },
     setStatus(id,status) { db.prepare("UPDATE applications SET status=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=?").run(status,id); return this.application(id); },
     nextPending(eventId){
-      db.prepare(`SELECT id FROM applications WHERE event_id=? AND status='PENDING' OREDER BY created_at ASC, id ASC LIMIT 1`),get(eventId);
+      return db.prepare(`SELECT id FROM applications WHERE event_id=? AND status='PENDING' ORDER BY created_at ASC, id ASC LIMIT 1`).get(eventId);
     }
   };
 }

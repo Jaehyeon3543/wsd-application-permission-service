@@ -140,13 +140,30 @@ export function createApplicationService(repo) {
           applicationId: applicationId,
           actorId: actor.id,
           action: 'REVOKE',
-          fromStatus: 'PENDING',
+          fromStatus: 'APPROVED',
           toStatus: 'REVOKED',
           reason: reason,
           causeHistoryId: null
         });
 
+        const next = repo.nextPending(application.eventId);
+        let promoted = null;
+        if(next){
+          promoted = repo.setStatus(next.id,"APPROVED");
+          repo.addHistory({
+          applicationId: next.id,
+          actorId: actor.id,
+          action: 'AUTO_APPROVE',
+          fromStatus: 'PENDING',
+          toStatus: 'APPROVED',
+          reason: null,
+          causeHistoryId: revokeHistoryId
+          });
+        }
+        return {revoked: revoked, promoted: promoted};
+
       });
+
     }
   };
 }
