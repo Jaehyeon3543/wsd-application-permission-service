@@ -143,9 +143,8 @@ npm run db:reset
 - 잠금 대기가 busy_timeout(5초)을 넘으면 500이 반환될 수 있습니다.
 - U04·U05는 README의 정확한 흐름(새 DB, 행사 2) 대신 T17·T18·T20·T25 화면으로 확인했습니다.
 
-## 보고서와 검증 증거
+## 검증 증거
 
-- 보고서: [docs/report.pdf]
 - 검증 스크린샷: [docs/evidence/]
   - 파일 이름은 `T번호_순번.png` 형식입니다(예: `07_1.png`).
   - 자동 테스트 결과 화면은 `test_assignment.png`, `test_advanced.png`입니다.
