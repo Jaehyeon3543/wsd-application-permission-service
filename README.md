@@ -100,9 +100,67 @@ npm run db:reset
 
 ## 제출 전 작성할 내용
 
-이 부분을 본인의 서비스 소개, 변경 파일, 구현 완료 여부, 실행 환경, 알려진 문제, 보고서·검증 증거 링크와 AI 사용 요약으로 바꾸세요. GitHub URL·커밋 SHA를 LMS에 제출하고 보고서 PDF를 저장소 `docs/report.pdf`와 LMS에 같은 버전으로 첨부합니다.
+## 제출 정보
 
-`node_modules`, 생성 DB·서명 키, 실제 `.env`·JWT와 개인 정보는 제출하지 않습니다. 제공 코드와 직접 구현한 부분을 구분합니다.
+- 학번·이름: 202212215 / 이재현
+- 서비스: 신청 승인 서비스. 학생이 행사 참가를 신청하고, 행사 담당 운영자가 정원 안에서 승인합니다. 승인 취소 시 같은 행사의 대기자 1명을 신청 순서대로 자동 승급하고, 모든 변경을 이력으로 남깁니다.
+- 기술: Node.js 24 + Express 5.3 + SQLite(node:sqlite) + JWT(jsonwebtoken 9)
+- 실행 환경: Node.js v24.21.0, npm, Windows WSL2(Linux)
+- 설치·실행·DB 초기화: 위의 [실행](#실행)과 [DB 초기화](#db-초기화와-이전-코드에서의-전환) 절차를 그대로 사용합니다.
+
+## 구현 완료 여부
+
+| TODO | 함수 | 상태 |
+|---|---|---|
+| TODO-01 | `apply` 신청 + APPLY 이력 | 완료 |
+| TODO-02 | `cancel` 본인 대기 취소 + CANCEL 이력 | 완료 |
+| TODO-03 | `approve` 담당자·상태·정원 검사 + APPROVE 이력 | 완료 |
+| TODO-04 | `revoke` 승인 취소 + 자동 승급 + 원인 ID로 이력 연결 | 완료 |
+
+| 테스트 | 결과 |
+|---|---|
+| `npm test` (기반) | 4/4 통과 |
+| `npm run test:assignment` (필수) | 32/32 통과 |
+| `npm run test:advanced` (선택 심화, 20회 동시 승인) | 1/1 통과 |
+
+화면 검증 U01~U05는 브라우저에서 수행했습니다.
+
+## 변경 파일
+
+제공 코드 중 아래 세 파일만 변경했고, 나머지(`app.js`, `auth.js`, `db.js`, `server.js`, `public/`, `tests/`)는 수정하지 않았습니다.
+
+- `src/application-service.js`
+  - `transaction()` 추가: BEGIN IMMEDIATE → COMMIT, 오류 시 ROLLBACK
+  - `apply`, `cancel`, `approve`, `revoke` 구현: 검사와 모든 저장을 하나의 트랜잭션 안에서 실행
+- `src/repository.js`
+  - `nextPending()` 추가: 같은 행사의 PENDING 중 `created_at ASC, id ASC` 첫 1건을 조회
+- `src/errors.js`
+  - `duplicate()` 추가: 중복 신청을 DB 제약 오류(500)가 아닌 409 `ALREADY_APPLIED`로 반환
+
+## 알려진 문제와 한계
+
+- 동시성 보호는 SQLite의 데이터베이스 전체 쓰기 잠금(BEGIN IMMEDIATE)에 의존합니다. 다른 DB나 여러 서버 구성에서는 행 잠금이나 조건부 UPDATE가 필요합니다.
+- 잠금 대기가 busy_timeout(5초)을 넘으면 500이 반환될 수 있습니다.
+- U04·U05는 README의 정확한 흐름(새 DB, 행사 2) 대신 T17·T18·T20·T25 화면으로 확인했습니다.
+
+## 보고서와 검증 증거
+
+- 보고서: [docs/report.pdf]
+- 검증 스크린샷: [docs/evidence/]
+  - 파일 이름은 `T번호_순번.png` 형식입니다(예: `07_1.png`).
+  - 자동 테스트 결과 화면은 `test_assignment.png`, `test_advanced.png`입니다.
+
+## AI 사용 요약
+
+- 도구: Claude Code (Claude Opus 5.5)
+- 사용 방식: 코드는 TODO 단위로 직접 작성했습니다. AI는 구조 설명, 단계별 힌트, 작성한 코드 리뷰, 테스트 결과 해석, 보고서 검수에 사용했습니다. AI가 처음 전체 구현을 제안했을 때는 되돌리고 직접 작성했습니다.
+- 적용 위치: `application-service.js`의 `apply`·`cancel`·`approve`·`revoke`·`transaction`, `repository.js`의 `nextPending`
+- 직접 검증: 위 테스트 전체 통과와 브라우저 화면 검증
+- 초기 커밋(`ca6c116`, 제공 원본 저장)은 AI가 실행했습니다.
+- 자세한 내용은 보고서의 "AI 활용과 참고 자료"에 있습니다.
+
+## 참고 문서
+
 
 ## 참고 문서
 
